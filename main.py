@@ -44,9 +44,6 @@ def read_controls(canvas):
     return rows_direction, columns_direction, space_pressed
 
 
-
-
-
 def draw_frame(canvas, start_row, start_column, text, negative=False):
     """Draw multiline text fragment on canvas, erase text instead of drawing if negative=True is specified."""
 
@@ -124,16 +121,15 @@ async def animate(canvas, start_row, start_column, frames, delay=1, next_row=Non
         next_colum = start_column
 
     while True:
-        for frame_number, frame in enumerate(frames):
+        for frame_number in range(len(frames)):
             draw_frame(canvas, start_row, start_column, frames[frame_number-1], negative=True)
             draw_frame(canvas, start_row, start_column, frames[frame_number], negative=True)
+            # иначе неверно отрисовывает движение
             draw_frame(canvas, next_row, next_colum, frames[frame_number-1], negative=True)
 
-            draw_frame(canvas, next_row, next_colum, frame, negative=False)
+            draw_frame(canvas, next_row, next_colum, frames[frame_number], negative=False)
             for _ in range(delay):
                 await asyncio.sleep(0)
-
-
 
 
 async def blink(canvas, row, column, symbol='*', timers=None):
@@ -155,6 +151,16 @@ async def blink(canvas, row, column, symbol='*', timers=None):
                 await asyncio.sleep(0)
 
 
+def check_coordinate(row, column, rows_direction, columns_direction, max_row, max_column, frame):
+    frame_rows, frame_columns = get_frame_size(frame)
+    next_row = row + rows_direction
+    next_colum = column + columns_direction
+    if next_row < 1 or next_row + frame_rows > max_row - 1:
+        next_row = row
+    if next_colum < 1 or next_colum + frame_columns > max_column - 1:
+        next_colum = column
+    return next_row, next_colum
+
 def draw(canvas):
     max_row, max_column = canvas.getmaxyx()
     p = 0.05  # коэффицент заполности звездого неба
@@ -168,8 +174,7 @@ def draw(canvas):
 
     coroutines = [
         animate(canvas, row, column, ROCKET_ANIMATIONS, delay=2),
-        fire(canvas, row, column, rows_speed=-0.3, columns_speed=0),
-
+        fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0),
     ]
     for column_number in range(star_number):
         coroutines.append(blink(
@@ -185,11 +190,13 @@ def draw(canvas):
                 coroutine.send(None)
             except StopIteration:
                 coroutines.remove(coroutine)
-        #time.sleep(TIC_TIMEOUT)
+        time.sleep(TIC_TIMEOUT)
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
+        if space_pressed:
+            coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
         if rows_direction**2 or columns_direction**2:
-            next_row = row + rows_direction
-            next_colum = column + columns_direction
+            next_row, next_colum = check_coordinate(row, column, rows_direction, columns_direction, max_row, max_column, ROCKET_ANIMATIONS[0])
+
             coroutines[0] = animate(
                 canvas, row, column, ROCKET_ANIMATIONS,
                 delay=2, next_row=next_row, next_colum=next_colum
@@ -210,5 +217,4 @@ if __name__ == '__main__':
     ]
 
     curses.update_lines_cols()
-
     curses.wrapper(draw)
