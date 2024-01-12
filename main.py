@@ -2,7 +2,7 @@ import asyncio
 import curses
 import time
 import random
-from types import coroutine
+
 
 STARS = ['+', '*', '.', ':']
 TIC_TIMEOUT = 0.1
@@ -161,6 +161,7 @@ def check_coordinate(row, column, rows_direction, columns_direction, max_row, ma
         next_colum = column
     return next_row, next_colum
 
+
 def draw(canvas):
     max_row, max_column = canvas.getmaxyx()
     p = 0.05  # коэффицент заполности звездого неба
@@ -195,7 +196,9 @@ def draw(canvas):
         if space_pressed:
             coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
         if rows_direction**2 or columns_direction**2:
-            next_row, next_colum = check_coordinate(row, column, rows_direction, columns_direction, max_row, max_column, ROCKET_ANIMATIONS[0])
+            next_row, next_colum = check_coordinate(
+                row, column, rows_direction, columns_direction, max_row, max_column, ROCKET_ANIMATIONS[0]
+            )
 
             coroutines[0] = animate(
                 canvas, row, column, ROCKET_ANIMATIONS,
