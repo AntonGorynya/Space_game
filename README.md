@@ -10,3 +10,8 @@ Python3 должен быть уже установлен.
 ```commandline
 pip install windows-curses
 ```
+# Как запустить
+
+```commandline
+python main.py
+```
