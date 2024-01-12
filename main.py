@@ -44,6 +44,9 @@ def read_controls(canvas):
     return rows_direction, columns_direction, space_pressed
 
 
+
+
+
 def draw_frame(canvas, start_row, start_column, text, negative=False):
     """Draw multiline text fragment on canvas, erase text instead of drawing if negative=True is specified."""
 
@@ -115,13 +118,20 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 
-async def animate(canvas, start_row, start_column, frames):
+async def animate(canvas, start_row, start_column, frames, delay=1, next_row=None, next_colum=None):
+    if not next_row and not next_colum:
+        next_row = start_row
+        next_colum = start_column
+
     while True:
         for frame_number, frame in enumerate(frames):
             draw_frame(canvas, start_row, start_column, frames[frame_number-1], negative=True)
-            draw_frame(canvas, start_row, start_column, frame, negative=False)
-            canvas.refresh()
-            await asyncio.sleep(0)
+            draw_frame(canvas, start_row, start_column, frames[frame_number], negative=True)
+            draw_frame(canvas, next_row, next_colum, frames[frame_number-1], negative=True)
+
+            draw_frame(canvas, next_row, next_colum, frame, negative=False)
+            for _ in range(delay):
+                await asyncio.sleep(0)
 
 
 
@@ -149,27 +159,43 @@ def draw(canvas):
     max_row, max_column = canvas.getmaxyx()
     p = 0.05  # коэффицент заполности звездого неба
     star_number = int((max_row - 2) * (max_column - 2) * p)
+    row = max_row // 2
+    column = max_column // 2
     canvas.border()
     canvas.timeout(int(TIC_TIMEOUT*1000))
+    canvas.nodelay(True)
     curses.curs_set(False)
 
     coroutines = [
-        fire(canvas, max_row // 2, max_column // 2, rows_speed=-0.3, columns_speed=0),
-        animate(canvas, max_row // 2 - 2, max_column // 2 - 2, ROCKET_ANIMATIONS)
+        animate(canvas, row, column, ROCKET_ANIMATIONS, delay=2),
+        fire(canvas, row, column, rows_speed=-0.3, columns_speed=0),
+
     ]
     for column_number in range(star_number):
-        row = random.randint(1, max_row - 2)
-        column = random.randint(1, max_column - 2)
-        symbol = random.choice(STARS)
-        coroutines.append(blink(canvas, row, column, symbol=symbol))
+        coroutines.append(blink(
+            canvas,
+            random.randint(1, max_row - 2),
+            random.randint(1, max_column - 2),
+            symbol=random.choice(STARS)
+        ))
 
     while True:
         for coroutine in coroutines.copy():
             try:
-                blink_command = coroutine.send(None)
+                coroutine.send(None)
             except StopIteration:
                 coroutines.remove(coroutine)
-        time.sleep(TIC_TIMEOUT)
+        #time.sleep(TIC_TIMEOUT)
+        rows_direction, columns_direction, space_pressed = read_controls(canvas)
+        if rows_direction**2 or columns_direction**2:
+            next_row = row + rows_direction
+            next_colum = column + columns_direction
+            coroutines[0] = animate(
+                canvas, row, column, ROCKET_ANIMATIONS,
+                delay=2, next_row=next_row, next_colum=next_colum
+            )
+            row = next_row
+            column = next_colum
         canvas.refresh()
 
 
@@ -184,4 +210,5 @@ if __name__ == '__main__':
     ]
 
     curses.update_lines_cols()
+
     curses.wrapper(draw)
