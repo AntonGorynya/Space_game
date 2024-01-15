@@ -162,8 +162,7 @@ def check_coordinate(row, column, rows_direction, columns_direction, max_row, ma
     return next_row, next_colum
 
 
-def fly_ship(canvas, coroutines, row, column):
-    max_row, max_column = canvas.getmaxyx()
+def fly_ship(canvas, coroutines, row, column, max_row, max_column):
     rows_direction, columns_direction, space_pressed = read_controls(canvas)
     if space_pressed:
         coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
@@ -212,7 +211,7 @@ def draw(canvas):
             except StopIteration:
                 coroutines.remove(coroutine)
         time.sleep(TIC_TIMEOUT)
-        row, column = fly_ship(canvas, coroutines, row, column)
+        row, column = fly_ship(canvas, coroutines, row, column, max_row, max_column)
         canvas.refresh()
 
 
