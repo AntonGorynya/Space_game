@@ -132,7 +132,7 @@ async def animate(canvas, start_row, start_column, frames, delay=1, next_row=Non
                 await asyncio.sleep(0)
 
 
-async def blink(canvas, row, column, symbol='*', timers=None):
+async def blink(canvas, row, column, symbol='*', timers=None, initial_delay=None):
     states = [
         curses.A_DIM,
         curses.A_NORMAL,
@@ -141,9 +141,9 @@ async def blink(canvas, row, column, symbol='*', timers=None):
     ]
     if timers is None:
         timers = [2, 0.3, 0.5, 0.5]
-
-    for _ in range(int(round(random.uniform(0., 2.), 1) / 0.1)):
-        await asyncio.sleep(0)
+    if initial_delay:
+        for _ in range(initial_delay):
+            await asyncio.sleep(0)
     while True:
         for state, timer in zip(states, timers):
             canvas.addstr(row, column, symbol, state)
@@ -160,6 +160,25 @@ def check_coordinate(row, column, rows_direction, columns_direction, max_row, ma
     if next_colum < 1 or next_colum + frame_columns > max_column - 1:
         next_colum = column
     return next_row, next_colum
+
+
+def fly_ship(canvas, coroutines, row, column):
+    max_row, max_column = canvas.getmaxyx()
+    rows_direction, columns_direction, space_pressed = read_controls(canvas)
+    if space_pressed:
+        coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
+    if rows_direction ** 2 or columns_direction ** 2:
+        next_row, next_colum = check_coordinate(
+            row, column, rows_direction, columns_direction, max_row, max_column, ROCKET_ANIMATIONS[0]
+        )
+
+        coroutines[0] = animate(
+            canvas, row, column, ROCKET_ANIMATIONS,
+            delay=2, next_row=next_row, next_colum=next_colum
+        )
+        row = next_row
+        column = next_colum
+    return row, column
 
 
 def draw(canvas):
@@ -182,7 +201,8 @@ def draw(canvas):
             canvas,
             random.randint(1, max_row - 2),
             random.randint(1, max_column - 2),
-            symbol=random.choice(STARS)
+            symbol=random.choice(STARS),
+            initial_delay=int(round(random.uniform(0., 2.), 1) / TIC_TIMEOUT)
         ))
 
     while True:
@@ -192,20 +212,7 @@ def draw(canvas):
             except StopIteration:
                 coroutines.remove(coroutine)
         time.sleep(TIC_TIMEOUT)
-        rows_direction, columns_direction, space_pressed = read_controls(canvas)
-        if space_pressed:
-            coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
-        if rows_direction**2 or columns_direction**2:
-            next_row, next_colum = check_coordinate(
-                row, column, rows_direction, columns_direction, max_row, max_column, ROCKET_ANIMATIONS[0]
-            )
-
-            coroutines[0] = animate(
-                canvas, row, column, ROCKET_ANIMATIONS,
-                delay=2, next_row=next_row, next_colum=next_colum
-            )
-            row = next_row
-            column = next_colum
+        row, column = fly_ship(canvas, coroutines, row, column)
         canvas.refresh()
 
 
