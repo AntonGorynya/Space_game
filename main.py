@@ -169,6 +169,39 @@ def fly_ship(canvas, coroutines, row, column, max_row, max_column):
     return row, column
 
 
+async def afly_ship(canvas, row, column, max_row, max_column):
+    frame_rows, frame_columns = get_frame_size(ROCKET_ANIMATIONS[0])
+    while True:
+        rows_direction, columns_direction, space_pressed = read_controls(canvas)
+        if rows_direction ** 2 or columns_direction ** 2:
+            next_row = min(max(1, row + rows_direction), max_row - frame_rows - 1)
+            next_colum = min(max(1, column + columns_direction), max_column - frame_columns - 1)
+            row = next_row
+            column = next_colum
+
+            for frame_number in range(len(ROCKET_ANIMATIONS)):
+                draw_frame(canvas, row, column, ROCKET_ANIMATIONS[frame_number-1], negative=True)
+                draw_frame(canvas, row, column, ROCKET_ANIMATIONS[frame_number], negative=True)
+                # иначе неверно отрисовывает движение
+                draw_frame(canvas, next_row, next_colum, ROCKET_ANIMATIONS[frame_number-1], negative=True)
+
+                draw_frame(canvas, next_row, next_colum, ROCKET_ANIMATIONS[frame_number], negative=False)
+
+                # if space_pressed:
+                #             #     coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
+
+
+
+        for _ in range(2):
+            await asyncio.sleep(0)
+
+
+
+
+
+
+
+
 def draw(canvas):
     max_row, max_column = canvas.getmaxyx()
     p = 0.05  # коэффицент заполности звездого неба
@@ -181,8 +214,9 @@ def draw(canvas):
     curses.curs_set(False)
 
     coroutines = [
-        animate(canvas, row, column, ROCKET_ANIMATIONS, delay=2),
+        #animate(canvas, row, column, ROCKET_ANIMATIONS, delay=2),
         fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0),
+        afly_ship(canvas, row, column, max_row, max_column)
     ]
     for column_number in range(star_number):
         coroutines.append(blink(
@@ -200,7 +234,7 @@ def draw(canvas):
             except StopIteration:
                 coroutines.remove(coroutine)
         time.sleep(TIC_TIMEOUT)
-        row, column = fly_ship(canvas, coroutines, row, column, max_row, max_column)
+        #row, column = fly_ship(canvas, coroutines, row, column, max_row, max_column)
         canvas.refresh()
 
 
