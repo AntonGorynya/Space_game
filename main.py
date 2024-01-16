@@ -115,23 +115,6 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 
-async def animate(canvas, start_row, start_column, frames, delay=1, next_row=None, next_colum=None):
-    if not next_row and not next_colum:
-        next_row = start_row
-        next_colum = start_column
-
-    while True:
-        for frame_number in range(len(frames)):
-            draw_frame(canvas, start_row, start_column, frames[frame_number-1], negative=True)
-            draw_frame(canvas, start_row, start_column, frames[frame_number], negative=True)
-            # иначе неверно отрисовывает движение
-            draw_frame(canvas, next_row, next_colum, frames[frame_number-1], negative=True)
-
-            draw_frame(canvas, next_row, next_colum, frames[frame_number], negative=False)
-            for _ in range(delay):
-                await asyncio.sleep(0)
-
-
 async def blink(canvas, row, column, symbol='*', timers=None, initial_delay=None):
     states = [
         curses.A_DIM,
