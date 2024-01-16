@@ -151,25 +151,14 @@ async def blink(canvas, row, column, symbol='*', timers=None, initial_delay=None
                 await asyncio.sleep(0)
 
 
-def check_coordinate(row, column, rows_direction, columns_direction, max_row, max_column, frame):
-    frame_rows, frame_columns = get_frame_size(frame)
-    next_row = row + rows_direction
-    next_colum = column + columns_direction
-    if next_row < 1 or next_row + frame_rows > max_row - 1:
-        next_row = row
-    if next_colum < 1 or next_colum + frame_columns > max_column - 1:
-        next_colum = column
-    return next_row, next_colum
-
-
 def fly_ship(canvas, coroutines, row, column, max_row, max_column):
     rows_direction, columns_direction, space_pressed = read_controls(canvas)
     if space_pressed:
         coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
     if rows_direction ** 2 or columns_direction ** 2:
-        next_row, next_colum = check_coordinate(
-            row, column, rows_direction, columns_direction, max_row, max_column, ROCKET_ANIMATIONS[0]
-        )
+        frame_rows, frame_columns = get_frame_size(ROCKET_ANIMATIONS[0])
+        next_row = min(max(1, row + rows_direction), max_row - frame_rows - 1)
+        next_colum = min(max(1, column + columns_direction), max_column - frame_columns - 1)
 
         coroutines[0] = animate(
             canvas, row, column, ROCKET_ANIMATIONS,
