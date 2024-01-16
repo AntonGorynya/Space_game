@@ -152,9 +152,8 @@ async def blink(canvas, row, column, symbol='*', timers=None, initial_delay=None
 
 
 async def afly_ship(canvas, row, column, max_row, max_column):
-    frame1 = ROCKET_ANIMATIONS[0]
-    frame2 = ROCKET_ANIMATIONS[1]
-    frame_rows, frame_columns = get_frame_size(frame1)
+    frame_rows, frame_columns = get_frame_size(ROCKET_ANIMATIONS[1])
+    prev_frame_number = 0
     next_row = row
     next_colum = column
     while True:
@@ -163,9 +162,11 @@ async def afly_ship(canvas, row, column, max_row, max_column):
             next_row = min(max(1, row + rows_direction), max_row - frame_rows - 1)
             next_colum = min(max(1, column + columns_direction), max_column - frame_columns - 1)
 
-        for frame_number in range(len(ROCKET_ANIMATIONS)):
-            draw_frame(canvas, row, column, ROCKET_ANIMATIONS[frame_number-1], negative=True)
-            draw_frame(canvas, next_row, next_colum, ROCKET_ANIMATIONS[frame_number], negative=False)
+        for i in range(len(ROCKET_ANIMATIONS)):
+            draw_frame(canvas, row, column, ROCKET_ANIMATIONS[prev_frame_number], negative=True)
+            next_frame_number = (prev_frame_number + i) % 2
+            draw_frame(canvas, next_row, next_colum, ROCKET_ANIMATIONS[next_frame_number], negative=False)
+            prev_frame_number = next_frame_number
             row = next_row
             column = next_colum
             await asyncio.sleep(0)
