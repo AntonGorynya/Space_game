@@ -151,55 +151,24 @@ async def blink(canvas, row, column, symbol='*', timers=None, initial_delay=None
                 await asyncio.sleep(0)
 
 
-def fly_ship(canvas, coroutines, row, column, max_row, max_column):
-    rows_direction, columns_direction, space_pressed = read_controls(canvas)
-    if space_pressed:
-        coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
-    if rows_direction ** 2 or columns_direction ** 2:
-        frame_rows, frame_columns = get_frame_size(ROCKET_ANIMATIONS[0])
-        next_row = min(max(1, row + rows_direction), max_row - frame_rows - 1)
-        next_colum = min(max(1, column + columns_direction), max_column - frame_columns - 1)
-
-        coroutines[0] = animate(
-            canvas, row, column, ROCKET_ANIMATIONS,
-            delay=2, next_row=next_row, next_colum=next_colum
-        )
-        row = next_row
-        column = next_colum
-    return row, column
-
-
 async def afly_ship(canvas, row, column, max_row, max_column):
-    frame_rows, frame_columns = get_frame_size(ROCKET_ANIMATIONS[0])
+    frame1 = ROCKET_ANIMATIONS[0]
+    frame2 = ROCKET_ANIMATIONS[1]
+    frame_rows, frame_columns = get_frame_size(frame1)
+    next_row = row
+    next_colum = column
     while True:
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
         if rows_direction ** 2 or columns_direction ** 2:
             next_row = min(max(1, row + rows_direction), max_row - frame_rows - 1)
             next_colum = min(max(1, column + columns_direction), max_column - frame_columns - 1)
+
+        for frame_number in range(len(ROCKET_ANIMATIONS)):
+            draw_frame(canvas, row, column, ROCKET_ANIMATIONS[frame_number-1], negative=True)
+            draw_frame(canvas, next_row, next_colum, ROCKET_ANIMATIONS[frame_number], negative=False)
             row = next_row
             column = next_colum
-
-            for frame_number in range(len(ROCKET_ANIMATIONS)):
-                draw_frame(canvas, row, column, ROCKET_ANIMATIONS[frame_number-1], negative=True)
-                draw_frame(canvas, row, column, ROCKET_ANIMATIONS[frame_number], negative=True)
-                # иначе неверно отрисовывает движение
-                draw_frame(canvas, next_row, next_colum, ROCKET_ANIMATIONS[frame_number-1], negative=True)
-
-                draw_frame(canvas, next_row, next_colum, ROCKET_ANIMATIONS[frame_number], negative=False)
-
-                # if space_pressed:
-                #             #     coroutines.append(fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0))
-
-
-
-        for _ in range(2):
             await asyncio.sleep(0)
-
-
-
-
-
-
 
 
 def draw(canvas):
@@ -214,7 +183,6 @@ def draw(canvas):
     curses.curs_set(False)
 
     coroutines = [
-        #animate(canvas, row, column, ROCKET_ANIMATIONS, delay=2),
         fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0),
         afly_ship(canvas, row, column, max_row, max_column)
     ]
@@ -234,7 +202,6 @@ def draw(canvas):
             except StopIteration:
                 coroutines.remove(coroutine)
         time.sleep(TIC_TIMEOUT)
-        #row, column = fly_ship(canvas, coroutines, row, column, max_row, max_column)
         canvas.refresh()
 
 
