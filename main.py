@@ -2,9 +2,12 @@ import asyncio
 import curses
 import time
 import random
+import os
 
 
 STARS = ['+', '*', '.', ':']
+SPACE_GARBAGE = []
+COROUTINES = []
 TIC_TIMEOUT = 0.1
 SPACE_KEY_CODE = 32
 LEFT_KEY_CODE = 260
@@ -155,10 +158,49 @@ async def afly_ship(canvas, row, column, max_row, max_column):
             await asyncio.sleep(0)
 
 
+async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
+    """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
+    rows_number, columns_number = canvas.getmaxyx()
+    frame_rows, frame_columns = get_frame_size(garbage_frame)
+
+    column = max(column, 0)
+    column = min(column, columns_number - 1)
+
+    row = 1
+    while row <= frame_rows:
+        tmp_frame = "\n".join(garbage_frame.split("\n")[-int(row):])
+        draw_frame(canvas, 1, column, tmp_frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, 1, column, tmp_frame, negative=True)
+        row += speed
+
+    row = 1
+    while row < rows_number:
+        draw_frame(canvas, row, column, garbage_frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, row, column, garbage_frame, negative=True)
+        if row + frame_rows + 1 >= rows_number:
+            garbage_frame = "\n".join(garbage_frame.split("\n")[:-1])
+        row += speed
+
+
+async def fill_orbit_with_garbage(canvas, p=0.05):
+    rows_number, columns_number = canvas.getmaxyx()
+    while True:
+        if random.random() > (1 - p):
+            frame = random.choice(SPACE_GARBAGE)
+            frame_rows, frame_columns = get_frame_size(frame)
+            COROUTINES.append(
+                fly_garbage(canvas, random.randint(1, columns_number - frame_columns - 2), frame)
+            )
+        await asyncio.sleep(0)
+
+
 def draw(canvas):
     max_row, max_column = canvas.getmaxyx()
     p = 0.05  # коэффицент заполности звездого неба
     star_number = int((max_row - 2) * (max_column - 2) * p)
+    init_garbage_number = int((max_row - 2) * p )
     row = max_row // 2
     column = max_column // 2
     canvas.border()
@@ -166,25 +208,32 @@ def draw(canvas):
     canvas.nodelay(True)
     curses.curs_set(False)
 
-    coroutines = [
+    COROUTINES.extend([
         fire(canvas, row, column + 2, rows_speed=-0.3, columns_speed=0),
-        afly_ship(canvas, row, column, max_row, max_column)
-    ]
-    for column_number in range(star_number):
-        coroutines.append(blink(
+        afly_ship(canvas, row, column, max_row, max_column),
+        fill_orbit_with_garbage(canvas),
+    ])
+    for _ in range(star_number):
+        COROUTINES.append(blink(
             canvas,
             random.randint(1, max_row - 2),
             random.randint(1, max_column - 2),
             symbol=random.choice(STARS),
             initial_delay=int(round(random.uniform(0., 2.), 1) / TIC_TIMEOUT)
         ))
+    for _ in range(init_garbage_number):
+        garbage_frame = random.choice(SPACE_GARBAGE)
+        frame_rows, frame_columns = get_frame_size(garbage_frame)
+        COROUTINES.append(
+            fly_garbage(canvas, random.randint(1, max_column - frame_rows - 2), garbage_frame)
+        )
 
     while True:
-        for coroutine in coroutines.copy():
+        for coroutine in COROUTINES.copy():
             try:
                 coroutine.send(None)
             except StopIteration:
-                coroutines.remove(coroutine)
+                COROUTINES.remove(coroutine)
         time.sleep(TIC_TIMEOUT)
         canvas.refresh()
 
@@ -198,6 +247,9 @@ if __name__ == '__main__':
         rocket_frame_1,
         rocket_frame_2
     ]
+    for file in os.listdir('Animations/space_garbage'):
+        with open(os.path.join('Animations/space_garbage', file), 'r') as f:
+            SPACE_GARBAGE.append(f.read())
 
     curses.update_lines_cols()
     curses.wrapper(draw)
