@@ -88,6 +88,11 @@ def get_frame_size(text):
     return rows, columns
 
 
+async def sleep(tics=1):
+    for _ in range(tics):
+        await asyncio.sleep(0)
+
+
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
     """Display animation of gun shot, direction and speed can be specified."""
 
@@ -128,8 +133,7 @@ async def blink(canvas, row, column, symbol='*', timers=None, initial_delay=None
     if timers is None:
         timers = [2, 0.3, 0.5, 0.5]
     if initial_delay:
-        for _ in range(initial_delay):
-            await asyncio.sleep(0)
+        await sleep(tics=initial_delay)
     while True:
         for state, timer in zip(states, timers):
             canvas.addstr(row, column, symbol, state)
