@@ -144,6 +144,10 @@ async def afly_ship(canvas, row, column, max_row, max_column):
     next_colum = column
     while True:
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
+        if space_pressed:
+            COROUTINES.append(
+                fire(canvas, row , column + 2)
+            )
         if rows_direction ** 2 or columns_direction ** 2:
             next_row = min(max(1, row + rows_direction), max_row - frame_rows - 1)
             next_colum = min(max(1, column + columns_direction), max_column - frame_columns - 1)
