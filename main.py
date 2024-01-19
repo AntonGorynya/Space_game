@@ -16,7 +16,6 @@ LEFT_KEY_CODE = 260
 RIGHT_KEY_CODE = 261
 UP_KEY_CODE = 259
 DOWN_KEY_CODE = 258
-SHIP_SPEED = [0, 0]
 
 
 def read_controls(canvas):
@@ -149,14 +148,14 @@ async def afly_ship(canvas, row, column, max_row, max_column):
     prev_frame_number = 0
     next_row = row
     next_colum = column
-    row_speed, column_speed = SHIP_SPEED
+    row_speed, column_speed = 0, 0
     while True:
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
         if space_pressed:
             COROUTINES.append(
                 fire(canvas, row , column + 2)
             )
-        #if rows_direction ** 2 or columns_direction ** 2:
+
         row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction, columns_direction)
         next_row = min(max(1, row + row_speed), max_row - frame_rows - 1)
         next_colum = min(max(1, column + column_speed), max_column - frame_columns - 1)
