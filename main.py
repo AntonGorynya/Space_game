@@ -7,13 +7,16 @@ import os
 from physics import update_speed
 from obstacles import Obstacle, has_collision, show_obstacles
 from curses_tools import draw_frame, read_controls, get_frame_size
+from explosion import explode
 
 
 STARS = ['+', '*', '.', ':']
 SPACE_GARBAGE = []
 OBSTACLES = []
+OBSTACLES_IN_LAST_COLLISION = []
 COROUTINES = []
 TIC_TIMEOUT = 0.1
+DEBUG = False
 
 
 async def sleep(tics=1):
@@ -45,6 +48,11 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
     while 1 < row < max_row and 1 < column < max_column:
         canvas.addstr(round(row), round(column), symbol)
+        for obstacle in OBSTACLES:
+            if obstacle.has_collision(row, column):
+                OBSTACLES_IN_LAST_COLLISION.append(obstacle)
+                canvas.addstr(round(row), round(column), ' ')
+                return 0
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
         row += rows_speed
@@ -106,6 +114,8 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     obstacle = Obstacle(row, column, 1, frame_columns)
     OBSTACLES.append(obstacle)
     while row <= frame_rows:
+        if obstacle in OBSTACLES_IN_LAST_COLLISION:
+            break
         tmp_frame = "\n".join(garbage_frame.split("\n")[-int(row):])
         draw_frame(canvas, 1, column, tmp_frame)
         obstacle.rows_size = int(row)
@@ -115,6 +125,10 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
 
     row = 1
     while row < rows_number:
+        if obstacle in OBSTACLES_IN_LAST_COLLISION:
+            OBSTACLES_IN_LAST_COLLISION.remove(obstacle)
+            COROUTINES.append(explode(canvas, row + int(frame_rows/2), column + int(frame_columns/2)))
+            break
         draw_frame(canvas, row, column, garbage_frame)
         obstacle.row = int(row)
         await asyncio.sleep(0)
@@ -122,6 +136,7 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         if row + frame_rows + 1 >= rows_number:
             garbage_frame = "\n".join(garbage_frame.split("\n")[:-1])
         row += speed
+
     OBSTACLES.remove(obstacle)
 
 
@@ -168,7 +183,8 @@ def draw(canvas):
         COROUTINES.append(
             fly_garbage(canvas, random.randint(1, max_column - frame_rows - 2), garbage_frame)
         )
-    COROUTINES.append(show_obstacles(canvas, OBSTACLES))
+    if DEBUG:
+        COROUTINES.append(show_obstacles(canvas, OBSTACLES))
 
     while True:
         for coroutine in COROUTINES.copy():
