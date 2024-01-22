@@ -5,7 +5,7 @@ import random
 import os
 
 from physics import update_speed
-from obstacles import Obstacle, has_collision, show_obstacles
+from obstacles import Obstacle, show_obstacles
 from curses_tools import draw_frame, read_controls, get_frame_size
 from explosion import explode
 
@@ -121,7 +121,7 @@ async def game_over(canvas):
 async def currunt_year(canvas):
     global YEAR
     phrase = ""
-    PHRASES = {
+    phrases = {
         # Только на английском, Repl.it ломается на кириллице
         1957: "First Sputnik",
         1961: "Gagarin flew!",
@@ -132,15 +132,13 @@ async def currunt_year(canvas):
         2011: 'Messenger launch to Mercury',
         2020: "Take the plasma gun! Shoot the garbage!",
     }
-    max_row, max_column = canvas.getmaxyx()
     while True:
         canvas.addstr(1, 2, "Currunt year: {}".format(YEAR))
-        if YEAR in PHRASES:
-            phrase = PHRASES[YEAR]
+        if YEAR in phrases:
+            phrase = phrases[YEAR]
         canvas.addstr(2, 2, phrase)
         YEAR += 1
         await sleep(15)
-
 
 
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
