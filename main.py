@@ -122,6 +122,7 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         if row + frame_rows + 1 >= rows_number:
             garbage_frame = "\n".join(garbage_frame.split("\n")[:-1])
         row += speed
+    OBSTACLES.remove(obstacle)
 
 
 async def fill_orbit_with_garbage(canvas, p=0.05):
