@@ -100,10 +100,11 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     frame_rows, frame_columns = get_frame_size(garbage_frame)
 
     column = max(column, 0)
-    column = min(column, columns_number - 1)
+    column = min(column, columns_number - frame_columns - 1)
 
-    row = 1
+    row = 2
     obstacle = Obstacle(row, column, 1, frame_columns)
+    OBSTACLES.append(obstacle)
     while row <= frame_rows:
         tmp_frame = "\n".join(garbage_frame.split("\n")[-int(row):])
         draw_frame(canvas, 1, column, tmp_frame)
@@ -139,7 +140,7 @@ def draw(canvas):
     max_row, max_column = canvas.getmaxyx()
     p = 0.05  # коэффицент заполности звездого неба
     star_number = int((max_row - 2) * (max_column - 2) * p)
-    init_garbage_number = int((max_row - 2) * p)
+    init_garbage_number = max(int((max_row - 2) * p), 1)
     row = max_row // 2
     column = max_column // 2
     canvas.border()
@@ -166,6 +167,7 @@ def draw(canvas):
         COROUTINES.append(
             fly_garbage(canvas, random.randint(1, max_column - frame_rows - 2), garbage_frame)
         )
+    COROUTINES.append(show_obstacles(canvas, OBSTACLES))
 
     while True:
         for coroutine in COROUTINES.copy():
