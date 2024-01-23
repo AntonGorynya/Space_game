@@ -11,13 +11,14 @@ from explosion import explode
 
 
 STARS = ['+', '*', '.', ':']
-SPACE_GARBAGE = []
-OBSTACLES = []
-OBSTACLES_IN_LAST_COLLISION = []
-COROUTINES = []
-YEAR = 1957
 TIC_TIMEOUT = 0.1
 DEBUG = False
+
+space_garbage = []
+obstacles = []
+obstacles_in_last_collision = []
+coroutines = []
+year = 1957
 
 
 async def sleep(tics=1):
@@ -49,9 +50,9 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
     while 1 < row < max_row and 1 < column < max_column:
         canvas.addstr(round(row), round(column), symbol)
-        for obstacle in OBSTACLES:
+        for obstacle in obstacles:
             if obstacle.has_collision(row, column):
-                OBSTACLES_IN_LAST_COLLISION.append(obstacle)
+                obstacles_in_last_collision.append(obstacle)
                 canvas.addstr(round(row), round(column), ' ')
                 return 0
         await asyncio.sleep(0)
@@ -78,13 +79,13 @@ async def blink(canvas, row, column, symbol='*', timers=None, initial_delay=None
 
 
 async def afly_ship(canvas, row, column, max_row, max_column):
-    frame_rows, frame_columns = get_frame_size(ROCKET_ANIMATIONS[1])
+    frame_rows, frame_columns = get_frame_size(rocket_animations[1])
     prev_frame_number = 0
     row_speed, column_speed = 0, 0
     while True:
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
-        if space_pressed and YEAR >= 2020:
-            COROUTINES.append(
+        if space_pressed and year >= 2020:
+            coroutines.append(
                 fire(canvas, row, column + 2)
             )
 
@@ -92,16 +93,16 @@ async def afly_ship(canvas, row, column, max_row, max_column):
         next_row = min(max(1, row + row_speed), max_row - frame_rows - 1)
         next_colum = min(max(1, column + column_speed), max_column - frame_columns - 1)
 
-        for iteration in range(len(ROCKET_ANIMATIONS)):
-            draw_frame(canvas, row, column, ROCKET_ANIMATIONS[prev_frame_number], negative=True)
-            for obstacle in OBSTACLES:
+        for iteration in range(len(rocket_animations)):
+            draw_frame(canvas, row, column, rocket_animations[prev_frame_number], negative=True)
+            for obstacle in obstacles:
                 if obstacle.has_collision(
                         int(row), int(column), obj_size_rows=frame_rows, obj_size_columns=frame_columns):
-                    COROUTINES.append(explode(canvas, row + int(frame_rows / 2), column + int(frame_columns / 2)))
+                    coroutines.append(explode(canvas, row + int(frame_rows / 2), column + int(frame_columns / 2)))
                     await game_over(canvas)
                     return 0
             next_frame_number = (prev_frame_number + iteration) % 2
-            draw_frame(canvas, next_row, next_colum, ROCKET_ANIMATIONS[next_frame_number], negative=False)
+            draw_frame(canvas, next_row, next_colum, rocket_animations[next_frame_number], negative=False)
             prev_frame_number = next_frame_number
             row = next_row
             column = next_colum
@@ -119,7 +120,7 @@ async def game_over(canvas):
 
 
 async def currunt_year(canvas):
-    global YEAR
+    global year
     phrase = ""
     phrases = {
         # Только на английском, Repl.it ломается на кириллице
@@ -133,11 +134,11 @@ async def currunt_year(canvas):
         2020: "Take the plasma gun! Shoot the garbage!",
     }
     while True:
-        canvas.addstr(1, 2, "Currunt year: {}".format(YEAR))
-        if YEAR in phrases:
-            phrase = phrases[YEAR]
+        canvas.addstr(1, 2, "Currunt year: {}".format(year))
+        if year in phrases:
+            phrase = phrases[year]
         canvas.addstr(2, 2, phrase)
-        YEAR += 1
+        year += 1
         await sleep(15)
 
 
@@ -151,9 +152,9 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
 
     row = 2
     obstacle = Obstacle(row, column, 1, frame_columns)
-    OBSTACLES.append(obstacle)
+    obstacles.append(obstacle)
     while row <= frame_rows:
-        if obstacle in OBSTACLES_IN_LAST_COLLISION:
+        if obstacle in obstacles_in_last_collision:
             break
         tmp_frame = "\n".join(garbage_frame.split("\n")[-int(row):])
         draw_frame(canvas, 1, column, tmp_frame)
@@ -164,9 +165,9 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
 
     row = 1
     while row < rows_number:
-        if obstacle in OBSTACLES_IN_LAST_COLLISION:
-            OBSTACLES_IN_LAST_COLLISION.remove(obstacle)
-            COROUTINES.append(explode(canvas, row + int(frame_rows/2), column + int(frame_columns/2)))
+        if obstacle in obstacles_in_last_collision:
+            obstacles_in_last_collision.remove(obstacle)
+            coroutines.append(explode(canvas, row + int(frame_rows / 2), column + int(frame_columns / 2)))
             break
         draw_frame(canvas, row, column, garbage_frame)
         obstacle.row = int(row)
@@ -176,21 +177,21 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
             garbage_frame = "\n".join(garbage_frame.split("\n")[:-1])
         row += speed
 
-    OBSTACLES.remove(obstacle)
+    obstacles.remove(obstacle)
 
 
 async def fill_orbit_with_garbage(canvas, p=0.05):
     rows_number, columns_number = canvas.getmaxyx()
     while True:
-        if YEAR < 1961:
+        if year < 1961:
             pass
         else:
             if p != 1:
-                p = float((YEAR-1961)/1000)
+                p = float((year - 1961) / 1000)
             if random.random() > (1 - p):
-                frame = random.choice(SPACE_GARBAGE)
+                frame = random.choice(space_garbage)
                 frame_rows, frame_columns = get_frame_size(frame)
-                COROUTINES.append(
+                coroutines.append(
                     fly_garbage(canvas, random.randint(1, columns_number - frame_columns - 2), frame)
                 )
         await asyncio.sleep(0)
@@ -208,13 +209,13 @@ def draw(canvas):
     canvas.nodelay(True)
     curses.curs_set(False)
 
-    COROUTINES.extend([
+    coroutines.extend([
         afly_ship(canvas, row, column, max_row, max_column),
         fill_orbit_with_garbage(canvas),
         currunt_year(canvas),
     ])
     for _ in range(star_number):
-        COROUTINES.append(blink(
+        coroutines.append(blink(
             canvas,
             random.randint(1, max_row - 2),
             random.randint(1, max_column - 2),
@@ -222,20 +223,20 @@ def draw(canvas):
             initial_delay=int(round(random.uniform(0., 2.), 1) / TIC_TIMEOUT)
         ))
     for _ in range(init_garbage_number):
-        garbage_frame = random.choice(SPACE_GARBAGE)
+        garbage_frame = random.choice(space_garbage)
         frame_rows, frame_columns = get_frame_size(garbage_frame)
-        COROUTINES.append(
+        coroutines.append(
             fly_garbage(canvas, random.randint(1, max_column - frame_rows - 2), garbage_frame)
         )
     if DEBUG:
-        COROUTINES.append(show_obstacles(canvas, OBSTACLES))
+        coroutines.append(show_obstacles(canvas, obstacles))
 
     while True:
-        for coroutine in COROUTINES.copy():
+        for coroutine in coroutines.copy():
             try:
                 coroutine.send(None)
             except StopIteration:
-                COROUTINES.remove(coroutine)
+                coroutines.remove(coroutine)
         time.sleep(TIC_TIMEOUT)
         canvas.refresh()
 
@@ -245,13 +246,13 @@ if __name__ == '__main__':
         rocket_frame_1 = f.read()
     with open('Animations/rocket_frame_2.txt', 'r') as f:
         rocket_frame_2 = f.read()
-    ROCKET_ANIMATIONS = [
+    rocket_animations = [
         rocket_frame_1,
         rocket_frame_2
     ]
     for file in os.listdir('Animations/space_garbage'):
         with open(os.path.join('Animations/space_garbage', file), 'r') as f:
-            SPACE_GARBAGE.append(f.read())
+            space_garbage.append(f.read())
 
     curses.update_lines_cols()
     curses.wrapper(draw)
