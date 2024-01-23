@@ -32,10 +32,10 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
     row, column = start_row, start_column
 
     canvas.addstr(round(row), round(column), '*')
-    await asyncio.sleep(0)
+    await sleep(1)
 
     canvas.addstr(round(row), round(column), 'O')
-    await asyncio.sleep(0)
+    await sleep(1)
     canvas.addstr(round(row), round(column), ' ')
 
     row += rows_speed
@@ -106,7 +106,7 @@ async def afly_ship(canvas, row, column, max_row, max_column):
             prev_frame_number = next_frame_number
             row = next_row
             column = next_colum
-            await asyncio.sleep(0)
+            await sleep()
 
 
 async def game_over(canvas):
@@ -116,7 +116,7 @@ async def game_over(canvas):
     frame_rows, frame_columns = get_frame_size(game_over_frame)
     while True:
         draw_frame(canvas, (max_row - frame_rows) / 2, (max_column - frame_columns) / 2, game_over_frame)
-        await asyncio.sleep(0)
+        await sleep()
 
 
 async def currunt_year(canvas):
@@ -147,35 +147,37 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     rows_number, columns_number = canvas.getmaxyx()
     frame_rows, frame_columns = get_frame_size(garbage_frame)
 
-    column = max(column, 0)
+    column = max(column, 1)
     column = min(column, columns_number - frame_columns - 1)
 
-    row = 2
-    obstacle = Obstacle(row, column, 1, frame_columns)
-    obstacles.append(obstacle)
-    while row <= frame_rows:
-        if obstacle in obstacles_in_last_collision:
-            break
-        tmp_frame = "\n".join(garbage_frame.split("\n")[-int(row):])
-        draw_frame(canvas, 1, column, tmp_frame)
-        obstacle.rows_size = int(row)
-        await asyncio.sleep(0)
-        draw_frame(canvas, 1, column, tmp_frame, negative=True)
-        row += speed
-
     row = 1
-    while row < rows_number:
+    rows_size = 1
+    obstacle = Obstacle(row, column, rows_size, frame_columns)
+    obstacles.append(obstacle)
+    while row <= rows_number:
         if obstacle in obstacles_in_last_collision:
             obstacles_in_last_collision.remove(obstacle)
-            coroutines.append(explode(canvas, row + int(frame_rows / 2), column + int(frame_columns / 2)))
+            coroutines.append(
+                explode(canvas, row + int(min(frame_rows, rows_size) / 2), column + int(frame_columns / 2))
+            )
             break
-        draw_frame(canvas, row, column, garbage_frame)
-        obstacle.row = int(row)
-        await asyncio.sleep(0)
-        draw_frame(canvas, row, column, garbage_frame, negative=True)
-        if row + frame_rows + 1 >= rows_number:
-            garbage_frame = "\n".join(garbage_frame.split("\n")[:-1])
-        row += speed
+
+        if rows_size <= frame_rows:
+            tmp_frame = "\n".join(garbage_frame.split("\n")[-int(rows_size):])
+            draw_frame(canvas, 1, column, tmp_frame)
+            obstacle.rows_size = int(rows_size)
+            await sleep(1)
+            draw_frame(canvas, 1, column, tmp_frame, negative=True)
+            rows_size += speed
+
+        if rows_size > frame_rows:
+            draw_frame(canvas, row, column, garbage_frame)
+            obstacle.row = int(row)
+            await sleep(1)
+            draw_frame(canvas, row, column, garbage_frame, negative=True)
+            if row + frame_rows + 1 >= rows_number:
+                garbage_frame = "\n".join(garbage_frame.split("\n")[:-1])
+            row += speed
 
     obstacles.remove(obstacle)
 
@@ -194,7 +196,7 @@ async def fill_orbit_with_garbage(canvas, p=0.05):
                 coroutines.append(
                     fly_garbage(canvas, random.randint(1, columns_number - frame_columns - 2), frame)
                 )
-        await asyncio.sleep(0)
+        await sleep()
 
 
 def draw(canvas):
